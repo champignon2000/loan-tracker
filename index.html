@@ -16,7 +16,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // Web App URL จาก Google Apps Script หลังบ้านของคุณ
+        // ลิงก์ Google Apps Script ตัวเดิมของคุณ
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyTs4XtycDxfb-fAxSqFoNkvuob-DrMYHglZbXoUIFmInCr4fyXqiMdaIuPnMT-_Xgf/exec";
 
         function App() {
@@ -31,7 +31,7 @@
             const [showPayModal, setShowPayModal] = useState(false);
             const [selectedCustomer, setSelectedCustomer] = useState(null);
 
-            // ข้อมูลฟอร์มอินพุตสำหรับเพิ่มลูกหนี้ใหม่
+            // ข้อมูลฟอร์มสำหรับเพิ่มลูกหนี้ใหม่
             const [name, setName] = useState("");
             const [loanType, setLoanType] = useState("daily");
             const [principal, setPrincipal] = useState("");
@@ -39,7 +39,7 @@
             const [customDays, setCustomDays] = useState("");
             const [payAmount, setPayAmount] = useState("");
 
-            // ดึงข้อมูลลูกหนี้ทั้งหมดจาก Google Sheet ทันทีที่เปิดแอป
+            // ดึงข้อมูลลูกหนี้ทั้งหมดเมื่อเปิดแอป
             useEffect(() => {
                 fetchData();
             }, []);
@@ -52,13 +52,13 @@
                     setCustomers(data);
                     setError(null);
                 } catch (err) {
-                    setError("ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้ กรุณารีเฟรชหน้าจออีกครั้ง");
+                    setError("ไม่สามารถเชื่อมต่อ Google Sheet ได้ กรุณารีเฟรชหน้าจอ");
                 } finally {
                     setLoading(false);
                 }
             };
 
-            // ฟังก์ชันส่งข้อมูลลูกหนี้ใหม่เข้า Google Sheet
+            // บันทึกลูกหนี้ใหม่ลง Google Sheet
             const handleAddCustomer = async (e) => {
                 e.preventDefault();
                 setLoading(true);
@@ -78,16 +78,15 @@
                         })
                     });
                     
-                    // ล้างข้อมูลในฟอร์มเมื่อบันทึกเสร็จ
                     setName(""); setPrincipal(""); setCustomCyclePayment(""); setCustomDays("");
-                    setTimeout(fetchData, 1500); // ดีเลย์สั้น ๆ รอให้ Sheet บันทึกเสร็จแล้วโหลดข้อมูลใหม่
+                    setTimeout(fetchData, 1500);
                 } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
                     setLoading(false);
                 }
             };
 
-            // ฟังก์ชันบันทึกการจ่ายค่างวดประจำวัน
+            // บันทึกการชำระเงิน
             const handlePayment = async (e) => {
                 e.preventDefault();
                 setLoading(true);
@@ -111,7 +110,7 @@
                 }
             };
 
-            // ระบบตัวกรองเมนูและกล่องค้นหาชื่อลูกหนี้
+            // ตัวกรองค้นหาและเมนูแท็บ
             const filteredCustomers = customers.filter(c => {
                 const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
                 if (!matchesSearch) return false;
@@ -123,7 +122,7 @@
 
             return (
                 <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-xl border-x border-slate-100">
-                    {/* ส่วนหัวแอปพลิเคชัน */}
+                    {/* Header */}
                     <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 shadow-md sticky top-0 z-10 rounded-b-2xl">
                         <div class="flex justify-between items-center mb-4">
                             <h1 class="text-xl font-bold flex items-center gap-2">
@@ -139,7 +138,7 @@
                         </div>
                     </div>
 
-                    {/* ปุ่มแท็บเลือกสถานะการเก็บเงิน */}
+                    {/* Tabs */}
                     <div class="flex border-b border-slate-100 bg-slate-50 sticky top-[116px] z-10">
                         <button onClick={() => setActiveTab("today")} class={`flex-1 py-3 text-sm font-bold border-b-2 text-center transition ${activeTab === "today" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500"}`}>
                             ต้องเก็บวันนี้ ({customers.filter(c => c.statusToday === "ต้องเก็บวันนี้").length})
@@ -152,12 +151,12 @@
                         </button>
                     </div>
 
-                    {/* รายการแสดงรายชื่อลูกหนี้ */}
+                    {/* Customer List */}
                     <div class="flex-1 p-4 overflow-y-auto">
                         {loading ? (
                             <div class="flex flex-col items-center justify-center py-16 text-slate-400">
                                 <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600 mb-3"></i>
-                                <p class="text-sm">กำลังปรับปรุงข้อมูลเรียลไทม์...</p>
+                                <p class="text-sm">กำลังโหลดข้อมูลเรียลไทม์...</p>
                             </div>
                         ) : error ? (
                             <div class="text-center py-12 text-red-500 font-medium">{error}</div>
@@ -192,12 +191,12 @@
                         )}
                     </div>
 
-                    {/* ป็อปอัพหน้าต่างเก็บเงิน (Pay Modal) */}
+                    {/* Pay Modal */}
                     {showPayModal && selectedCustomer && (
                         <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
                             <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl">
                                 <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-money-bill-wave text-emerald-500 mr-2"></i> บันทึกการเก็บเงิน</h3>
-                                <p class="text-sm text-slate-600 mb-4">ลูกหนี้: <strong class="text-slate-800">{selectedCustomer.name}</strong> (ยอดปกติตามรอบ {selectedCustomer.cyclePayment} บาท)</p>
+                                <p class="text-sm text-slate-600 mb-4">ลูกหนี้: <strong class="text-slate-800">{selectedCustomer.name}</strong> (ยอดปกติ {selectedCustomer.cyclePayment} บาท)</p>
                                 <form onSubmit={handlePayment}>
                                     <div class="mb-5">
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">จำนวนเงินที่เก็บได้จริง (บาท)</label>
@@ -212,7 +211,7 @@
                         </div>
                     )}
 
-                    {/* ป็อปอัพหน้าต่างเพิ่มลูกหนี้ (Add Modal) */}
+                    {/* Add Modal */}
                     {showAddModal && (
                         <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
                             <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
@@ -228,7 +227,7 @@
                                             <option value="daily">รายวัน (ส่งทุกวัน 24 วัน)</option>
                                             <option value="weekly">รายสัปดาห์ (ส่งสัปดาห์ละครั้ง)</option>
                                             <option value="monthly">รายเดือน (ส่งเดือนละครั้ง)</option>
-                                            <option value="custom">กำหนดเอง (ระบุจำนวนยอดและจำนวนวันเอง)</option>
+                                            <option value="custom">กำหนดเอง (ระบุยอดส่งและวันเอง)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -249,7 +248,7 @@
                                     )}
                                     <div class="flex gap-3 pt-2">
                                         <button type="button" onClick={() => setShowAddModal(false)} class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition">ยกเลิก</button>
-                                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition">บันทึกฐานข้อมูล</button>
+                                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition">บันทึกข้อมูล</button>
                                     </div>
                                 </form>
                             </div>
