@@ -14,9 +14,9 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // ดึงตัวแปรและสถานะจากระบบเดิมของคุณมารันโดยตรงบนเบราว์เซอร์
         const { useState, useEffect } = React;
-        // ลิงก์หลังบ้าน Google Apps Script ตัวเดิมของคุณ
+        
+        // Web App URL จาก Google Apps Script หลังบ้านของคุณ
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyTs4XtycDxfb-fAxSqFoNkvuob-DrMYHglZbXoUIFmInCr4fyXqiMdaIuPnMT-_Xgf/exec";
 
         function App() {
@@ -26,16 +26,12 @@
             const [search, setSearch] = useState("");
             const [activeTab, setActiveTab] = useState("today");
             
-            // หน้าต่างเด้งต่างๆ (Modals)
+            // สถานะเปิด-ปิด หน้าต่างเด้ง (Modals)
             const [showAddModal, setShowAddModal] = useState(false);
             const [showPayModal, setShowPayModal] = useState(false);
-            const [showEditModal, setShowEditModal] = useState(false);
-            const [showHistoryModal, setShowHistoryModal] = useState(false);
-            
             const [selectedCustomer, setSelectedCustomer] = useState(null);
-            const [editingCustomer, setEditingCustomer] = useState(null);
 
-            // ข้อมูลฟอร์มอินพุต
+            // ข้อมูลฟอร์มอินพุตสำหรับเพิ่มลูกหนี้ใหม่
             const [name, setName] = useState("");
             const [loanType, setLoanType] = useState("daily");
             const [principal, setPrincipal] = useState("");
@@ -43,7 +39,7 @@
             const [customDays, setCustomDays] = useState("");
             const [payAmount, setPayAmount] = useState("");
 
-            // ดึงข้อมูลจาก Google Sheet เมื่อเปิดแอป
+            // ดึงข้อมูลลูกหนี้ทั้งหมดจาก Google Sheet ทันทีที่เปิดแอป
             useEffect(() => {
                 fetchData();
             }, []);
@@ -56,12 +52,13 @@
                     setCustomers(data);
                     setError(null);
                 } catch (err) {
-                    setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+                    setError("ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้ กรุณารีเฟรชหน้าจออีกครั้ง");
                 } finally {
                     setLoading(false);
                 }
             };
 
+            // ฟังก์ชันส่งข้อมูลลูกหนี้ใหม่เข้า Google Sheet
             const handleAddCustomer = async (e) => {
                 e.preventDefault();
                 setLoading(true);
@@ -80,15 +77,17 @@
                             customDays: customDays ? parseInt(customDays) : null
                         })
                     });
-                    // ล้างฟอร์ม
+                    
+                    // ล้างข้อมูลในฟอร์มเมื่อบันทึกเสร็จ
                     setName(""); setPrincipal(""); setCustomCyclePayment(""); setCustomDays("");
-                    setTimeout(fetchData, 1500); // รอให้ Sheet อัปเดตแล้วดึงข้อมูลใหม่
+                    setTimeout(fetchData, 1500); // ดีเลย์สั้น ๆ รอให้ Sheet บันทึกเสร็จแล้วโหลดข้อมูลใหม่
                 } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการบันทึก");
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
                     setLoading(false);
                 }
             };
 
+            // ฟังก์ชันบันทึกการจ่ายค่างวดประจำวัน
             const handlePayment = async (e) => {
                 e.preventDefault();
                 setLoading(true);
@@ -107,81 +106,83 @@
                     setPayAmount("");
                     setTimeout(fetchData, 1500);
                 } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการบันทึก");
+                    alert("เกิดข้อผิดพลาดในการบันทึกยอดเงิน");
                     setLoading(false);
                 }
             };
 
-            // กรองรายชื่อลูกหนี้ตามแท็บและการค้นหา
+            // ระบบตัวกรองเมนูและกล่องค้นหาชื่อลูกหนี้
             const filteredCustomers = customers.filter(c => {
                 const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
                 if (!matchesSearch) return false;
                 
                 if (activeTab === "today") return c.statusToday === "ต้องเก็บวันนี้";
                 if (activeTab === "paid") return c.statusToday === "จ่ายแล้ว";
-                return true; // แท็บทั้งหมด
+                return true; 
             });
 
             return (
-                <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-lg">
-                    {/* ส่วนหัวของแอป */}
-                    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-md sticky top-0 z-10">
-                        <div class="flex justify-between items-center mb-3">
-                            <h1 class="text-xl font-bold"><i class="fa-solid font-normal fa-wallet mr-2"></i>ระบบเก็บเงินกู้</h1>
-                            <button onClick={() => setShowAddModal(true)} class="bg-white text-blue-600 px-3 py-1.5 rounded-full text-sm font-semibold shadow hover:bg-blue-50 transition active:scale-95">
-                                <i class="fa-solid fa-user-plus mr-1"></i>เพิ่มลูกหนี้
+                <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-xl border-x border-slate-100">
+                    {/* ส่วนหัวแอปพลิเคชัน */}
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 shadow-md sticky top-0 z-10 rounded-b-2xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h1 class="text-xl font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-wallet"></i> ระบบเก็บเงินกู้
+                            </h1>
+                            <button onClick={() => setShowAddModal(true)} class="bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-50 transition active:scale-95">
+                                <i class="fa-solid fa-user-plus mr-1"></i> เพิ่มลูกหนี้
                             </button>
                         </div>
                         <div class="relative">
-                            <input type="text" placeholder="ค้นหาชื่อลูกหนี้..." value={search} onChange={(e) => setSearch(e.target.value)} class="w-full bg-white/15 text-white placeholder-white/60 pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:bg-white focus:text-slate-800 focus:placeholder-slate-400 transition" />
-                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-white/60"></i>
+                            <input type="text" placeholder="ค้นหาชื่อลูกหนี้..." value={search} onChange={(e) => setSearch(e.target.value)} class="w-full bg-white/10 text-white placeholder-white/50 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:bg-white focus:text-slate-800 focus:placeholder-slate-400 transition" />
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-white/50"></i>
                         </div>
                     </div>
 
-                    {/* แถบเลือกเมนูแท็บ */}
-                    <div class="flex border-b border-slate-100 bg-slate-50 sticky top-[108px] z-10">
-                        <button onClick={() => setActiveTab("today")} class={`flex-1 py-3 text-sm font-semibold border-b-2 text-center transition ${activeTab === "today" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+                    {/* ปุ่มแท็บเลือกสถานะการเก็บเงิน */}
+                    <div class="flex border-b border-slate-100 bg-slate-50 sticky top-[116px] z-10">
+                        <button onClick={() => setActiveTab("today")} class={`flex-1 py-3 text-sm font-bold border-b-2 text-center transition ${activeTab === "today" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500"}`}>
                             ต้องเก็บวันนี้ ({customers.filter(c => c.statusToday === "ต้องเก็บวันนี้").length})
                         </button>
-                        <button onClick={() => setActiveTab("paid")} class={`flex-1 py-3 text-sm font-semibold border-b-2 text-center transition ${activeTab === "paid" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+                        <button onClick={() => setActiveTab("paid")} class={`flex-1 py-3 text-sm font-bold border-b-2 text-center transition ${activeTab === "paid" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500"}`}>
                             จ่ายแล้ว ({customers.filter(c => c.statusToday === "จ่ายแล้ว").length})
                         </button>
-                        <button onClick={() => setActiveTab("all")} class={`flex-1 py-3 text-sm font-semibold border-b-2 text-center transition ${activeTab === "all" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+                        <button onClick={() => setActiveTab("all")} class={`flex-1 py-3 text-sm font-bold border-b-2 text-center transition ${activeTab === "all" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-slate-500"}`}>
                             ทั้งหมด ({customers.length})
                         </button>
                     </div>
 
-                    {/* ส่วนแสดงรายชื่อลูกหนี้ */}
+                    {/* รายการแสดงรายชื่อลูกหนี้ */}
                     <div class="flex-1 p-4 overflow-y-auto">
                         {loading ? (
-                            <div class="flex flex-col items-center justify-center py-12 text-slate-400">
-                                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600 mb-2"></i>
-                                <p class="text-sm">กำลังโหลดข้อมูลจาก Google Sheet...</p>
+                            <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+                                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600 mb-3"></i>
+                                <p class="text-sm">กำลังปรับปรุงข้อมูลเรียลไทม์...</p>
                             </div>
                         ) : error ? (
                             <div class="text-center py-12 text-red-500 font-medium">{error}</div>
                         ) : filteredCustomers.length === 0 ? (
-                            <div class="text-center py-12 text-slate-400 text-sm">ไม่มีรายชื่อลูกหนี้ในหมวดนี้</div>
+                            <div class="text-center py-12 text-slate-400 text-sm">ไม่พบรายชื่อลูกหนี้ในหมวดนี้</div>
                         ) : (
                             <div class="space-y-3">
                                 {filteredCustomers.map(c => (
-                                    <div key={c.id} class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex justify-between items-center hover:border-slate-200 transition">
+                                    <div key={c.id} class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex justify-between items-center transition hover:border-slate-200">
                                         <div>
                                             <h3 class="font-bold text-slate-800 text-base mb-1">{c.name}</h3>
                                             <p class="text-xs text-slate-500 flex items-center gap-2">
-                                                <span>ยอดกู้: <strong class="text-slate-700">{c.principal}</strong></span>
+                                                <span>เงินต้น: <strong class="text-slate-700">{c.principal}</strong></span>
                                                 <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
                                                 <span>ต้องส่ง: <strong class="text-indigo-600">{c.cyclePayment}/รอบ</strong></span>
                                             </p>
                                         </div>
-                                        <div class="flex items-center gap-2">
+                                        <div>
                                             {c.statusToday === "ต้องเก็บวันนี้" ? (
-                                                <button onClick={() => { setSelectedCustomer(c); setPayAmount(c.cyclePayment); setShowPayModal(true); }} class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition active:scale-95">
+                                                <button onClick={() => { setSelectedCustomer(c); setPayAmount(c.cyclePayment); setShowPayModal(true); }} class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-600 transition active:scale-95">
                                                     เก็บเงิน
                                                 </button>
                                             ) : c.statusToday === "จ่ายแล้ว" ? (
-                                                <span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center">
-                                                    <i class="fa-solid fa-circle-check mr-1"></i> จ่ายแล้ว
+                                                <span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1">
+                                                    <i class="fa-solid fa-circle-check"></i> จ่ายแล้ว
                                                 </span>
                                             ) : null}
                                         </div>
@@ -194,17 +195,17 @@
                     {/* ป็อปอัพหน้าต่างเก็บเงิน (Pay Modal) */}
                     {showPayModal && selectedCustomer && (
                         <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
-                            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-xl animate-slide-up">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-money-bill-wave text-emerald-500 mr-2"></i>บันทึกการเก็บเงิน</h3>
-                                <p class="text-sm text-slate-600 mb-4">ลูกหนี้: <strong class="text-slate-800">{selectedCustomer.name}</strong> (ยอดปกติ {selectedCustomer.cyclePayment} บาท)</p>
+                            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-money-bill-wave text-emerald-500 mr-2"></i> บันทึกการเก็บเงิน</h3>
+                                <p class="text-sm text-slate-600 mb-4">ลูกหนี้: <strong class="text-slate-800">{selectedCustomer.name}</strong> (ยอดปกติตามรอบ {selectedCustomer.cyclePayment} บาท)</p>
                                 <form onSubmit={handlePayment}>
                                     <div class="mb-5">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">จำนวนเงินที่เก็บได้ (บาท)</label>
-                                        <input type="number" required value={payAmount} onChange={(e) => setPayAmount(e.target.value)} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">จำนวนเงินที่เก็บได้จริง (บาท)</label>
+                                        <input type="number" required value={payAmount} onChange={(e) => setPayAmount(e.target.value)} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition" />
                                     </div>
                                     <div class="flex gap-3">
-                                        <button type="button" onClick={() => setShowPayModal(false)} class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">ยกเลิก</button>
-                                        <button type="submit" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-semibold shadow-md shadow-emerald-100 hover:bg-emerald-600 transition">บันทึกชำระ</button>
+                                        <button type="button" onClick={() => setShowPayModal(false)} class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold hover:bg-slate-200 transition">ยกเลิก</button>
+                                        <button type="submit" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-emerald-600 transition">บันทึกชำระ</button>
                                     </div>
                                 </form>
                             </div>
@@ -214,24 +215,24 @@
                     {/* ป็อปอัพหน้าต่างเพิ่มลูกหนี้ (Add Modal) */}
                     {showAddModal && (
                         <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
-                            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-xl max-h-[85vh] overflow-y-auto">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-user-plus text-blue-500 mr-2"></i>เพิ่มข้อมูลลูกหนี้ใหม่</h3>
+                            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-user-plus text-blue-500 mr-2"></i> เพิ่มข้อมูลลูกหนี้ใหม่</h3>
                                 <form onSubmit={handleAddCustomer} class="space-y-4">
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่อ-นามสกุล</label>
-                                        <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น สมชาย ใจดี" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" />
+                                        <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น นายสมชาย สายเปย์" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">ประเภทการส่ง</label>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">ประเภทการส่งเงินกู้</label>
                                         <select value={loanType} onChange={(e) => setLoanType(e.target.value)} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition">
                                             <option value="daily">รายวัน (ส่งทุกวัน 24 วัน)</option>
                                             <option value="weekly">รายสัปดาห์ (ส่งสัปดาห์ละครั้ง)</option>
                                             <option value="monthly">รายเดือน (ส่งเดือนละครั้ง)</option>
-                                            <option value="custom">กำหนดเอง (ระบุจำนวนเงินและจำนวนวัน)</option>
+                                            <option value="custom">กำหนดเอง (ระบุจำนวนยอดและจำนวนวันเอง)</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">เงินต้นที่กู้ (บาท)</label>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">เงินต้นที่ปล่อยกู้ (บาท)</label>
                                         <input type="number" required value={principal} onChange={(e) => setPrincipal(e.target.value)} placeholder="เช่น 10000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" />
                                     </div>
                                     {loanType === "custom" && (
@@ -247,8 +248,8 @@
                                         </div>
                                     )}
                                     <div class="flex gap-3 pt-2">
-                                        <button type="button" onClick={() => setShowAddModal(false)} class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-200 transition">ยกเลิก</button>
-                                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-blue-100 hover:bg-blue-700 transition">บันทึกข้อมูล</button>
+                                        <button type="button" onClick={() => setShowAddModal(false)} class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition">ยกเลิก</button>
+                                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition">บันทึกฐานข้อมูล</button>
                                     </div>
                                 </form>
                             </div>
